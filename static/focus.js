@@ -5,37 +5,31 @@ const API = {
     buhForms: "/api3/buh",
 };
 
-function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
-            const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
-        });
+async function run() {
+    let request1 = await sendRequest(API.organizationList, (orgOgrns) => {
+        ogrns = orgOgrns.join("," )
+        OrgOgrns = orgOgrns;
     });
+    let request2 = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {orgsMap = reqsToMap(requisites)});
+    let request3 = sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {addInOrgsMap(orgsMap, analytics, "analytics")});
+    let request4 = sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
+        addInOrgsMap(orgsMap, buh, "buhForms");
+        render(orgsMap, OrgOgrns);
+    });
+    let list = [request1, request2, request3, request4]
+    Promise.all(list).then();
 }
-
 run();
 
-function sendRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-                callback(JSON.parse(xhr.response));
-            }
+async function sendRequest(url, callback) {
+    return fetch(url).then((response) => {
+        if (response.ok){
+            return response.json();
         }
-    };
-
-    xhr.send();
+        else{
+            alert(`${response.status}: ${response.statusText}`);
+        }
+    }).then((Json) => callback(Json))
 }
 
 function reqsToMap(requisites) {
@@ -86,7 +80,7 @@ function renderOrganization(orgInfo, template, container) {
                 orgInfo.buhForms[orgInfo.buhForms.length - 1].form2[0] &&
                 orgInfo.buhForms[orgInfo.buhForms.length - 1].form2[0]
                     .endValue) ||
-                0
+            0
         );
     } else {
         money.textContent = "—";
