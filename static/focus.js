@@ -5,70 +5,31 @@ const API = {
     buhForms: "/api3/buh",
 };
 
-/*
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
-            const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
-        });
+async function run() {
+    let request1 = await sendRequest(API.organizationList, (orgOgrns) => {
+        ogrns = orgOgrns.join("," )
+        OrgOgrns = orgOgrns;
     });
- */
-
-
-function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const orgns = orgOgrns.join(",")
-        return {orgns, orgOgrns}
-    }).then(function (obj) {
-            let orgns = obj.orgns;
-            let func = obj.orgOgrns;
-            return sendRequest(`${API.orgReqs}?ogrn=${orgns}`, (requisites) => {
-                const orgsMap = reqsToMap(requisites)
-                return {orgsMap, orgns, func}
-            });
-        })
-        .then(function (obj) {
-            let map = obj.orgsMap;
-            let orgns = obj.orgns;
-            let func = obj.func;
-            return sendRequest(`${API.analytics}?ogrn=${orgns}`, (analytics) => {
-                addInOrgsMap(map, analytics, "analytics")
-                return {map, orgns, func}
-            });
-        })
-        .then(function (obj) {
-            let map = obj.map;
-            let orgns = obj.orgns;
-            let func = obj.func;
-            return sendRequest(`${API.buhForms}?ogrn=${orgns}`, (buh) => {
-                addInOrgsMap(map, buh, "buhForms");
-                render(map, func);
-            });
-        })
+    let request2 = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {orgsMap = reqsToMap(requisites)});
+    let request3 = sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {addInOrgsMap(orgsMap, analytics, "analytics")});
+    let request4 = sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
+        addInOrgsMap(orgsMap, buh, "buhForms");
+        render(orgsMap, OrgOgrns);
+    });
+    let list = [request1, request2, request3, request4]
+    Promise.all(list).then();
 }
 run();
 
 async function sendRequest(url, callback) {
-    return new Promise(resolve => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    resolve(callback(JSON.parse(xhr.response)));
-                }
-            }
-        };
-        xhr.send();
-    })
+    return fetch(url).then((response) => {
+        if (response.ok){
+            return response.json();
+        }
+        else{
+            alert(response.status)
+        }
+    }).then((Json) => callback(Json))
 }
 
 function reqsToMap(requisites) {
