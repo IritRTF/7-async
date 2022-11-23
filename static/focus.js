@@ -50,8 +50,7 @@ run();
 
 async function sendRequest(url) {
     const response = await fetch(url);
-    if(response.ok)
-        return response.json();
+    if(response.ok) return response.json();
     alert(`${response.status} ${response.statusText}`);
     return response.status;
 }
