@@ -8,7 +8,10 @@ const API = {
 async function run() {
     const orgOgrns = await sendRequest1(API.organizationList)
         .then((response) => response.json())
-        .catch((error) => alert(`${error.code}\r\n ${error.status}`));
+        .catch((error) =>
+            alert(`${error.url}
+        \n${error.code}\n${error.status}`)
+        );
 
     const ogrns = orgOgrns.join(",");
 
@@ -22,8 +25,11 @@ async function run() {
         sendRequest1(`${API.buhForms}?ogrn=${ogrns}`).then((response) =>
             response.json()
         ),
-    ]).catch((error) => alert(`${error.code}\r\n ${error.status}`));
-
+    ]).catch((error) =>
+        alert(`${error.url}
+        ${error.code}
+        ${error.status}`)
+    );
     const orgsMap = reqsToMap(requisites);
     addInOrgsMap(orgsMap, analytics, "analytics");
     addInOrgsMap(orgsMap, buh, "buhForms");
@@ -38,6 +44,7 @@ async function sendRequest1(url) {
     const response = await fetch(url);
     if (!response.ok) {
         return Promise.reject({
+            url: url,
             status: response.statusText,
             code: response.status,
         });
