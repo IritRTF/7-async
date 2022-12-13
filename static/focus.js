@@ -33,12 +33,14 @@ function reqsToMap(requisites) {
         acc[item.ogrn] = item;
         return acc;
     }, {});
+
 }
 
 function addInOrgsMap(orgsMap, additionalInfo, key) {
     for (const item of additionalInfo) {
         orgsMap[item.ogrn][key] = item[key];
     }
+
 }
 
 function render(organizationsInfo, organizationsOrder) {
@@ -51,6 +53,7 @@ function render(organizationsInfo, organizationsOrder) {
     organizationsOrder.forEach((item) => {
         renderOrganization(organizationsInfo[item], template, container);
     });
+
 }
 
 function renderOrganization(orgInfo, template, container) {
@@ -86,6 +89,7 @@ function renderOrganization(orgInfo, template, container) {
     address.textContent = createAddress(addressFromServer);
 
     container.appendChild(clone);
+
 }
 
 function formatMoney(money) {
@@ -99,6 +103,7 @@ function formatMoney(money) {
     }
 
     return `${formatted} ₽`;
+
 }
 
 function createAddress(address) {
@@ -121,4 +126,5 @@ function createAddress(address) {
     function createAddressItem(key) {
         return `${address[key].topoShortName}. ${address[key].topoValue}`;
     }
+
 }
