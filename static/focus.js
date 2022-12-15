@@ -23,13 +23,16 @@ async function run() {
 
 run();
 
-async function sendRequest(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    alert(response.status);
-    return Promise.reject(response.status);
-  }
-  return response.json();
+function sendRequest(url) {
+  return new Promise((resolve, reject) => {
+      const fetchPr = fetch(url);
+      fetchPr.then(response => {
+          if (response.status >= 300) {
+              throw new Error(response.status.toString() + " " + response.statusText);
+          }
+          resolve(response.json());
+      });
+  });
 }
 
 function reqsToMap(requisites) {
