@@ -5,23 +5,52 @@ const API = {
     buhForms: "/api3/buh",
 };
 
-function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
-            const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
-        });
-    });
+async function run() {
+    const orgOgrns = await sendRequest1(API.organizationList)
+        .then((response) => response.json())
+        .catch((error) =>
+            alert(`${error.url}
+        \n${error.code}\n${error.status}`)
+        );
+
+    const ogrns = orgOgrns.join(",");
+
+    [requisites, analytics, buh] = await Promise.all([
+        sendRequest1(`${API.orgReqs}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest1(`${API.analytics}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest1(`${API.buhForms}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+    ]).catch((error) =>
+        alert(`${error.url}
+        ${error.code}
+        ${error.status}`)
+    );
+    const orgsMap = reqsToMap(requisites);
+    addInOrgsMap(orgsMap, analytics, "analytics");
+    addInOrgsMap(orgsMap, buh, "buhForms");
+    render(orgsMap, orgOgrns);
 }
 
+//делая замеры скорости, не обнаружил какого либо ускорения(что здесь 5 мл, что в прошлом варианте решение 5мл в среднем)
+console.time("run");
 run();
+console.timeEnd("run");
+async function sendRequest1(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        return Promise.reject({
+            url: url,
+            status: response.statusText,
+            code: response.status,
+        });
+    }
+    return response;
+}
 
 function sendRequest(url, callback) {
     const xhr = new XMLHttpRequest();
@@ -132,3 +161,5 @@ function createAddress(address) {
         return `${address[key].topoShortName}. ${address[key].topoValue}`;
     }
 }
+
+document.querySelector("h1").innerHTML = "kapusta+kapusta";
