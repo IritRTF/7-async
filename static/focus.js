@@ -7,18 +7,26 @@ const API = {
 
 
 async function run() {
-    const request1 = await sendRequest(API.organizationList, (orgOgrns) => {
-        ogrns = orgOgrns.join("," )
-        OrgOgrns = orgOgrns;
-    });
-    const request2 = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {orgsMap = reqsToMap(requisites)});
-    const request3 = sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {addInOrgsMap(orgsMap, analytics, "analytics")});
-    const request4 = sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-        addInOrgsMap(orgsMap, buh, "buhForms");
-        render(orgsMap, OrgOgrns);
-    });
-    const allRequests = [request1, request2, request3, request4]
-    Promise.all(allRequests).then();
+    const orgOgrns = await sendRequest(API.organizationList)
+        .then((response) => response.json())
+        .catch((error) => alert(`${error.code}\r\n ${error.status}`));
+    const ogrns = orgOgrns.join(",");
+
+    [analytics, requisites, buh] = await Promise.all([
+        sendRequest(`${API.analytics}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest(`${API.buhForms}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+    ]).catch((error) => alert(`${error.code}\r\n ${error.status}`));
+    const orgsMap = reqsToMap(requisites);
+    addInOrgsMap(orgsMap, analytics, "analytics");
+    addInOrgsMap(orgsMap, buh, "buhForms");
+    render(orgsMap, orgOgrns);
 }
 
 run();
