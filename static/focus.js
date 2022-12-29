@@ -5,37 +5,35 @@ const API = {
     buhForms: "/api3/buh",
 };
 
-function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
-            const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
-        });
-    });
+
+async function run() {
+    const orgOgrns = await sendRequest(API.organizationList)
+        .then((response) => response.json())
+        .catch((error) => alert(`${error.code}\r\n ${error.status}`));
+    const ogrns = orgOgrns.join(",");
+
+    [analytics, requisites, buh] = await Promise.all([
+        sendRequest(`${API.analytics}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+        sendRequest(`${API.buhForms}?ogrn=${ogrns}`).then((response) =>
+            response.json()
+        ),
+    ]).catch((error) => alert(`${error.code}\r\n ${error.status}`));
+    const orgsMap = reqsToMap(requisites);
+    addInOrgsMap(orgsMap, analytics, "analytics");
+    addInOrgsMap(orgsMap, buh, "buhForms");
+    render(orgsMap, orgOgrns);
 }
 
 run();
 
-function sendRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-                callback(JSON.parse(xhr.response));
-            }
-        }
-    };
-
-    xhr.send();
+async function sendRequest(url) {
+    const response = await fetch(url);
+    return response.ok ? response : Promise.reject({status: response.statusText, code: response.status});
 }
 
 function reqsToMap(requisites) {
