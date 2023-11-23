@@ -1,10 +1,9 @@
 const API = {
     organizationList: "/orgsList",
-    analytics: "/api3/analytics",
+    analytics: "/api3/analitics",  // изменено с "analytics" на "analitics"
     orgReqs: "/api3/reqBase",
     buhForms: "/api3/buh",
 };
-
 function run() {
     sendRequest(API.organizationList, (orgOgrns) => {
         const ogrns = orgOgrns.join(",");
