@@ -5,19 +5,24 @@ const API = {
     buhForms: "/api3/buh",
 };
 function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
+    sendRequest(API.organizationList)
+        .then(orgOgrns => {
+            const ogrns = orgOgrns.join(",");
+            return Promise.all([
+                sendRequest(`${API.orgReqs}?ogrn=${ogrns}`),
+                sendRequest(`${API.analytics}?ogrn=${ogrns}`),
+                sendRequest(`${API.buhForms}?ogrn=${ogrns}`)
+            ]);
+        })
+        .then(([requisites, analytics, buh]) => {
             const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
+            addInOrgsMap(orgsMap, analytics, "analytics");
+            addInOrgsMap(orgsMap, buh, "buhForms");
+            render(orgsMap, orgOgrns);
+        })
+        .catch(error => {
+            console.error(`Error in run: ${error.message}`);
         });
-    });
 }
 
 run();
