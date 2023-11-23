@@ -24,22 +24,16 @@ function run() {
 run();
 
 function sendRequest(url) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    resolve(JSON.parse(xhr.response));
-                } else {
-                    reject(new Error(`Request failed with status ${xhr.status}`));
-                }
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
             }
-        };
-
-        xhr.send();
-    });
+            return response.json();
+        })
+        .catch(error => {
+            throw new Error(`Request failed: ${error.message}`);
+        });
 }
 
 function reqsToMap(requisites) {
