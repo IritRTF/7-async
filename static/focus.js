@@ -1,41 +1,61 @@
 const API = {
     organizationList: "/orgsList",
-    analytics: "/api3/analytics",
+    analytics: "/api3/analitics",  // изменено с "analytics" на "analitics"
     orgReqs: "/api3/reqBase",
     buhForms: "/api3/buh",
 };
-
 function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
-        const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
+    sendRequest(API.organizationList)
+        .then(orgOgrns => {
+            const ogrns = orgOgrns.join(",");
+            return Promise.all([
+                sendRequest(`${API.orgReqs}?ogrn=${ogrns}`),
+                sendRequest(`${API.analytics}?ogrn=${ogrns}`),
+                sendRequest(`${API.buhForms}?ogrn=${ogrns}`)
+            ]);
+        })
+        .then(([requisites, analytics, buh]) => {
             const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
+            addInOrgsMap(orgsMap, analytics, "analytics");
+            addInOrgsMap(orgsMap, buh, "buhForms");
+            render(orgsMap, orgOgrns);
+        })
+        .catch(error => {
+            console.error(`Error in run: ${error.message}`);
         });
-    });
 }
 
 run();
+//На всякий случай решение с промисом 1
+//function sendRequest(url) {
+    //return new Promise((resolve, reject) => {
+        //const xhr = new XMLHttpRequest();
+        //xhr.open("GET", url, true);
 
-function sendRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
+        //xhr.onreadystatechange = function () {
+            //if (xhr.readyState === XMLHttpRequest.DONE) {
+                //if (xhr.status === 200) {
+                    //resolve(JSON.parse(xhr.response));
+                //} else {
+                    //reject(new Error(`Request failed with status ${xhr.status}`));
+                //}
+            //}
+        //};
 
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-                callback(JSON.parse(xhr.response));
+        //xhr.send();
+    //});
+//}
+function sendRequest(url) {
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
             }
-        }
-    };
-
-    xhr.send();
+            return response.json();
+        })
+        .catch(error => {
+            throw new Error(`Request failed: ${error.message}`);
+        });
 }
 
 function reqsToMap(requisites) {
