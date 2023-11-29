@@ -22,14 +22,11 @@ async function run() {
 
 run();
 
-function sendRequest(url) {
-    return fetch(url)
-        .then((response) => {
-            if (!response.ok) {
-                console.log(`response for url ${url} is not ok!`);
-            }
-            return response.json();
-        })
+async function sendRequest(url) {
+    return fetch(url).then(response => {
+        if (response.status >= 300 && !response.ok) console.log(response.status, response.statusText);
+        return response.json();
+    })
 }
 
 function reqsToMap(requisites) {
