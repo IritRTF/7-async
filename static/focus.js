@@ -5,37 +5,30 @@ const API = {
     buhForms: "/api3/buh",
 };
 
-function run() {
-    sendRequest(API.organizationList, (orgOgrns) => {
+async function run() {
+    try {
+        const orgOgrns = await sendRequest(API.organizationList);
         const ogrns = orgOgrns.join(",");
-        sendRequest(`${API.orgReqs}?ogrn=${ogrns}`, (requisites) => {
-            const orgsMap = reqsToMap(requisites);
-            sendRequest(`${API.analytics}?ogrn=${ogrns}`, (analytics) => {
-                addInOrgsMap(orgsMap, analytics, "analytics");
-                sendRequest(`${API.buhForms}?ogrn=${ogrns}`, (buh) => {
-                    addInOrgsMap(orgsMap, buh, "buhForms");
-                    render(orgsMap, orgOgrns);
-                });
-            });
-        });
-    });
+        const [ requisites, analytics, buh ] = await Promise.all([
+            sendRequest(`${API.orgReqs}?ogrn=${ogrns}`),
+            sendRequest(`${API.analytics}?ogrn=${ogrns}`),
+            sendRequest(`${API.buhForms}?ogrn=${ogrns}`),
+        ]);
+        const orgsMap = reqsToMap(requisites);
+        addInOrgsMap(orgsMap, analytics, "analytics");
+        addInOrgsMap(orgsMap, buh, "buhForms");
+        render(orgsMap, orgOgrns);
+    } catch (e) {
+        alert(`Failed: ${e.code} ${e.status}`);
+    }
 }
 
-run();
-
-function sendRequest(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-                callback(JSON.parse(xhr.response));
-            }
-        }
-    };
-
-    xhr.send();
+function sendRequest(url) {
+    return fetch(url)
+        .then(res => {
+            if (res.status >= 300 && !res.ok) throw { code: res.status, status: res.statusText };
+            return res.json();
+        });
 }
 
 function reqsToMap(requisites) {
@@ -70,32 +63,33 @@ function renderOrganization(orgInfo, template, container) {
     const money = clone.querySelector(".money");
     const address = clone.querySelector(".address");
 
-    name.textContent =
-        (orgInfo.UL && orgInfo.UL.legalName && orgInfo.UL.legalName.short) ||
-        "";
-    indebtedness.textContent = formatMoney(orgInfo.analytics.s1002 || 0);
-
-    if (
-        orgInfo.buhForms &&
-        orgInfo.buhForms.length &&
-        orgInfo.buhForms[orgInfo.buhForms.length - 1] &&
-        orgInfo.buhForms[orgInfo.buhForms.length - 1].year === 2017
-    ) {
-        money.textContent = formatMoney(
-            (orgInfo.buhForms[orgInfo.buhForms.length - 1].form2 &&
-                orgInfo.buhForms[orgInfo.buhForms.length - 1].form2[0] &&
-                orgInfo.buhForms[orgInfo.buhForms.length - 1].form2[0]
-                    .endValue) ||
-                0
-        );
-    } else {
-        money.textContent = "—";
-    }
-
-    const addressFromServer = orgInfo.UL.legalAddress.parsedAddressRF;
-    address.textContent = createAddress(addressFromServer);
+    name.textContent = getLegalName(orgInfo);
+    indebtedness.textContent = formatMoney(getAnalytics(orgInfo));
+    money.textContent = getMoney(orgInfo);
+    address.textContent = getAddress(orgInfo);
 
     container.appendChild(clone);
+}
+
+function getLegalName(orgInfo) {
+    return (orgInfo.UL && orgInfo.UL.legalName && orgInfo.UL.legalName.short) || "";
+}
+
+function getAnalytics(orgInfo) {
+    return orgInfo.analytics.s1002 || 0;
+}
+
+function getMoney(orgInfo) {
+    if (orgInfo.buhForms && orgInfo.buhForms.length && orgInfo.buhForms[orgInfo.buhForms.length - 1] && orgInfo.buhForms[orgInfo.buhForms.length - 1].year === 2017) {
+        return formatMoney(orgInfo.buhForms[orgInfo.buhForms.length - 1].form2[0].endValue) || "—";
+    } else {
+        return "—";
+    }
+}
+
+function getAddress(orgInfo) {
+    const addressFromServer = orgInfo.UL.legalAddress.parsedAddressRF;
+    return createAddress(addressFromServer);
 }
 
 function formatMoney(money) {
@@ -132,3 +126,5 @@ function createAddress(address) {
         return `${address[key].topoShortName}. ${address[key].topoValue}`;
     }
 }
+
+run();
